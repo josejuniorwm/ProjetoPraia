@@ -1,0 +1,50 @@
+function getDocuSignAccessToken() {
+    // 1. Defina suas Credenciais (Leitura de local seguro, NÃO NO CÓDIGO FONTE)
+    // ATENÇÃO: Os valores abaixo DEVEM ser lidos de um Dataset/Configuração segura.
+    var INTEGRATION_KEY = 'SEU_INTEGRATION_KEY_CLIENT_ID'; 
+    var USER_ID = 'SEU_USER_ID_GUID';
+    var PRIVATE_KEY_PATH = '/path/seguro/para/sua/chave.pem'; 
+
+    // 2. Carregar a Chave Privada (Assumindo que o SSJS tem acesso de leitura seguro)
+    // Esta função `fileSystem.readFile` é hipotética; você deve usar o método do Fluig.
+    var privateKey = fileSystem.readFile(PRIVATE_KEY_PATH); 
+    
+    // 3. Montar o JWT Payload
+    var now = Math.floor(Date.now() / 1000);
+    var expiresIn = 3600; // 1 hora de validade
+    
+    var payload = {
+        iss: INTEGRATION_KEY,
+        sub: USER_ID,
+        iat: now,
+        exp: now + expiresIn,
+        aud: 'account-d.docusign.com', // Ambiente Demo
+        scope: 'signature impersonation'
+    };
+
+    // 4. Assinar e Codificar o JWT
+    // ESTA É A PARTE CRÍTICA E QUE DEPENDE DO RHINO/FLUIG:
+    // Você precisa de uma função global que lide com Criptografia (RSA/SHA256) e Base64Url.
+    
+    // Assumindo que você tem uma função utilitária global chamada 'jwtSigner'
+    // que encapsula a lógica Java/Rhino para criptografar.
+    var jwtToken = jwtSigner.create(payload, privateKey); 
+
+    // 5. Trocar o JWT pelo Access Token (Requisição POST HTTP)
+    var authUrl = 'https://account-d.docusign.com/oauth/token'; // Endpoint de Auth DocuSign
+    
+    var authPayload = 'grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=' + jwtToken;
+
+    // Assumindo que você usa a utilidade de Requisição HTTP do Fluig (ex: `hAPI.doHttpRequest` ou similar)
+    var response = hAPI.doHttpRequest(authUrl, 'POST', authPayload, {
+        'Content-Type': 'application/x-www-form-urlencoded'
+    });
+    
+    var jsonResponse = JSON.parse(response.getResult());
+    
+    if (jsonResponse.access_token) {
+        return jsonResponse.access_token;
+    } else {
+        throw 'Erro ao obter Access Token: ' + (jsonResponse.error_description || 'Erro Desconhecido');
+    }
+}

@@ -1,0 +1,52 @@
+function enviarEnvelopeDocuSign(documentoBase64, signatarios) {
+    try {
+        // 1. Obter o Access Token seguro
+        var accessToken = getDocuSignAccessToken();
+        
+        // 2. Montar o Corpo da Requisição (Payload do Envelope)
+        var envelopePayload = {
+            // ... Definição dos documentos, signatários, e tabs (campos de assinatura)
+            // Usando o 'documentoBase64' e 'signatarios' passados.
+            documents: [{
+                documentId: "1",
+                name: "Documento Fluig",
+                documentBase64: documentoBase64,
+                fileExtension: "pdf"
+            }],
+            recipients: {
+                // ... Mapeamento dos signatários
+            },
+            status: "sent" // Envia imediatamente
+        };
+        
+        // 3. Chamada para a API eSignature
+        var apiUrl = 'https://demodal.docusign.net/restapi/v2.1/accounts/SEU_ACCOUNT_ID/envelopes';
+        
+        var headers = {
+            'Authorization': 'Bearer ' + accessToken,
+            'Content-Type': 'application/json'
+        };
+
+        // Assumindo chamada HTTP SSJS
+        var response = hAPI.doHttpRequest(apiUrl, 'POST', JSON.stringify(envelopePayload), headers);
+        var jsonResponse = JSON.parse(response.getResult());
+        
+        if (jsonResponse.envelopeId) {
+            return {
+                sucesso: true,
+                envelopeId: jsonResponse.envelopeId
+            };
+        } else {
+            return {
+                sucesso: false,
+                mensagem: jsonResponse.message || 'Falha ao enviar envelope'
+            };
+        }
+
+    } catch (e) {
+        return {
+            sucesso: false,
+            mensagem: 'Erro de Autenticação/Criptografia: ' + e
+        };
+    }
+}
